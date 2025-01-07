@@ -5,17 +5,21 @@ const bcrypt = require('bcrypt');
 const cors = require('cors');
 
 const app = express();
-const PORT = 3001; // Replace with your desired port number
+const PORT = process.env.PORT || 3001; // Vercel automatically assigns a port, but default to 3001 for local
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
 // Connect to MongoDB
-mongoose.connect('mongodb+srv://clearbiller:DKnvsIZBvHjsjmmN@cluster0.eipii.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://clearbiller:DKnvsIZBvHjsjmmN@cluster0.eipii.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0/FinderHUb', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
+}).catch(error => {
+  console.error('MongoDB connection error:', error);
+  process.exit(1);  // Ensures the app exits in case of database connection failure
 });
+
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'Connection error:'));
@@ -40,12 +44,12 @@ const User = mongoose.model('User', userSchema);
 app.post('/register', async (req, res) => {
   const { fullName, email, password, confirmPassword, phoneNumber, campusId, role } = req.body;
 
-  // Check required fields
+  // Check if all fields are provided
   if (!fullName || !email || !password || !confirmPassword || !phoneNumber || !campusId || !role) {
     return res.status(400).json({ error: 'All fields are required' });
   }
 
-  // Validate password and confirm password
+  // Check if passwords match
   if (password !== confirmPassword) {
     return res.status(400).json({ error: 'Passwords do not match' });
   }
@@ -70,13 +74,15 @@ app.post('/register', async (req, res) => {
       role,
     });
 
-    // Save the user in the database
+    // Save the new user to the database
     await newUser.save();
     res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'User registration failed', details: error.message });
+    console.error('Error during registration:', error);
+    res.status(500).json({ error: 'Server error, please try again later' });
   }
 });
+
 
 // Start the server
 app.listen(PORT, () => {
