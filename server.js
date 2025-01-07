@@ -83,8 +83,15 @@ app.post('/register', async (req, res) => {
   }
 });
 
-
 // Start the server
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT} abhi`);
+  console.log(`Server running on http://localhost:${PORT}`);
+  // Log confirmation to indicate the server has started successfully
+  console.log('Server is up and running successfully!');
 });
+
+// Handle root route to confirm server is working
+app.get('/', (req, res) => {
+  res.status(200).send('FinderHub server is up and running!');
+});
+
