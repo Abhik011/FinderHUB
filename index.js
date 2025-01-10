@@ -1,4 +1,3 @@
-
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
@@ -17,15 +16,19 @@ app.use(bodyParser.json());
 mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://clearbiller:DKnvsIZBvHjsjmmN@cluster0.eipii.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0/FinderHUb', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
+}).then(() => {
+  console.log('Connected to MongoDB successfully');
 }).catch(error => {
   console.error('MongoDB connection error:', error);
   process.exit(1);
 });
 
 const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'Connection error:'));
+db.on('error', (error) => {
+  console.error('MongoDB connection error:', error);
+});
 db.once('open', () => {
-  console.log('Connected to MongoDB');
+  console.log('MongoDB connection established');
 });
 
 // User schema
@@ -50,9 +53,12 @@ app.post('/register', [
   body('campusId').notEmpty().withMessage('Campus ID is required'),
   body('role').isIn(['Student', 'Faculty', 'Staff']).withMessage('Role must be Student, Faculty, or Staff')
 ], async (req, res) => {
+  console.log('Request body:', req.body);  // Log incoming data
+
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const errorMessages = errors.array().map(err => err.msg);
+    console.log('Validation errors:', errorMessages);  // Log validation errors
     return res.status(400).json({ errors: errorMessages });
   }
 
@@ -61,12 +67,14 @@ app.post('/register', [
   // Check if email is already registered
   const existingUser = await User.findOne({ email });
   if (existingUser) {
+    console.log('Email already exists:', email);  // Log email already registered
     return res.status(400).json({ error: 'Email is already registered' });
   }
 
   try {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
+    console.log('Password hashed:', hashedPassword);  // Log hashed password for debugging
 
     // Create a new user
     const newUser = new User({
@@ -80,9 +88,12 @@ app.post('/register', [
 
     // Save the new user to the database
     await newUser.save();
+    console.log('User registered:', newUser);  // Log the newly registered user
+
+    // Send success response
     res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
-    console.error('Error during registration:', error);
+    console.error('Error during registration:', error);  // Log any server errors
     res.status(500).json({ error: 'Server error, please try again later' });
   }
 });
@@ -95,5 +106,6 @@ app.listen(PORT, () => {
 
 // Handle root route to confirm server is working
 app.get('/', (req, res) => {
+  console.log('Root route accessed');
   res.status(200).send('FinderHub server is up and running! abhijeet kulkarni');
 });
